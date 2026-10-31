@@ -67,7 +67,7 @@ a sugestão inicial de sessões no banco foi substituída por essa restrição.
 - Banco vazio retorna `[]`; nenhuma carga inicial foi adicionada.
 - Migration inicial cria a tabela, índice único, CHECK da diária positiva/finita e trigger de normalização da placa.
 - GraphiQL habilitado fora de produção; a consulta `vehicles { model }` continua válida.
-- Cadastro/CRUD, categoria, imagem, transmissão, filtros e paginação ficam para outras issues.
+- Cadastro/CRUD, filtros e paginação ficam para outras issues; campos de catálogo estão em HER-5.
 
 ## Domínio de categorias — HER-6
 
@@ -78,7 +78,7 @@ a sugestão inicial de sessões no banco foi substituída por essa restrição.
 - Gerenciamento por seed/migration; sem mutations de CRUD.
 - Confirmado: resolver delega ao `CategoriesService`, que acessa o `PrismaService`,
   seguindo o padrão atual da API em lugar da injeção direta citada no card.
-- Relação Vehicle → Category e filtro de veículos permanecem em HER-5 e HER-7.
+- Relação Vehicle → Category entregue em HER-5; filtro de veículos permanece em HER-7.
 
 ## Domínio de locais — HER-9
 
@@ -94,3 +94,17 @@ a sugestão inicial de sessões no banco foi substituída por essa restrição.
   Rio de Janeiro/RJ e São Paulo/SP, com endereços identificados como demonstração.
 - Sem CRUD ou relação com Vehicle. Consumo pelos seletores e busca por data/local
   (HER-10) ficam para as próximas entregas.
+
+## Campos de catálogo do veículo — HER-5
+
+- `Vehicle` agora exige `categoryId` (FK para Category) e `transmission`, sem defaults.
+- Confirmado: veículos existentes exigem mapeamento explícito de categoria e
+  transmissão. O banco local estava vazio na aplicação. A migration transacional
+  bloqueia a tabela e aborta antes de alterar o schema se encontrar veículos;
+  em outro ambiente com registros, definir o mapeamento antes da aplicação.
+- `transmission` é string no PostgreSQL com CHECK para MANUAL/AUTOMATIC e enum
+  `Transmission` no GraphQL. `imageUrl` é opcional, sem validação adicional de URL.
+- A query mantém os campos anteriores e adiciona `imageUrl: String`,
+  `category: Category!` e `transmission: Transmission!`. Categoria vem por include
+  no Prisma, sem consulta por veículo; diária continua convertida para número.
+- Sem CRUD, filtros, paginação ou mudanças de interface. HER-7 implementará o filtro.

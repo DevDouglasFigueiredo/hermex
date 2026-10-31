@@ -24,12 +24,18 @@ describe('Vehicle no PostgreSQL (migration aplicada)', () => {
       year: -1,
       licensePlate: ` ${plate.toLowerCase().slice(0, 8)}-${plate.toLowerCase().slice(8)} `,
       dailyRate: new Prisma.Decimal('123.45'),
+      categoryId: '',
+      transmission: 'MANUAL',
     };
     try {
       const before = await prisma.vehicle.count();
       await expect(
         prisma.$transaction(
           async (tx) => {
+            const category = await tx.category.create({
+              data: { name: `Teste ${plate}` },
+            });
+            data.categoryId = category.id;
             const vehicle = await tx.vehicle.create({ data });
             expect(vehicle.id).toMatch(/^c[a-z0-9]+$/);
             expect(vehicle.available).toBe(true);
@@ -39,17 +45,24 @@ describe('Vehicle no PostgreSQL (migration aplicada)', () => {
             const service = new VehiclesService(tx as unknown as PrismaService);
             expect(await service.findAll()).toContainEqual({
               ...vehicle,
+              category,
               dailyRate: 123.45,
             });
+            expect(vehicle.imageUrl).toBeNull();
+            expect(vehicle.transmission).toBe('MANUAL');
             const updated = await tx.vehicle.update({
               where: { id: vehicle.id },
               data: {
                 licensePlate: ` ${plate.toLowerCase()}- `,
                 available: false,
+                transmission: 'AUTOMATIC',
+                imageUrl: 'https://example.com/car.jpg',
                 year: 2147483647,
               },
             });
             expect(updated.licensePlate).toBe(plate);
+            expect(updated.transmission).toBe('AUTOMATIC');
+            expect(updated.imageUrl).toBe('https://example.com/car.jpg');
             expect(updated.year).toBe(2147483647);
             expect(
               (await service.findAll()).find((v) => v.id === vehicle.id)
@@ -58,6 +71,12 @@ describe('Vehicle no PostgreSQL (migration aplicada)', () => {
 
             for (const [index, invalid] of [
               { ...data, licensePlate: plate },
+              {
+                ...data,
+                licensePlate: `${plate}FK`,
+                categoryId: 'missing-category',
+              },
+              { ...data, licensePlate: `${plate}ENUM`, transmission: 'CVT' },
               {
                 ...data,
                 licensePlate: `${plate}ZERO`,
@@ -80,6 +99,21 @@ describe('Vehicle no PostgreSQL (migration aplicada)', () => {
                 tx.vehicle.create({ data: invalid }),
               ).rejects.toThrow();
               await tx.$executeRawUnsafe(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+            }
+            for (const [index, column] of [
+              'categoryId',
+              'transmission',
+            ].entries()) {
+              await tx.$executeRawUnsafe(`SAVEPOINT required_${index}`);
+              await expect(
+                tx.$executeRawUnsafe(
+                  `UPDATE "Vehicle" SET "${column}" = NULL WHERE id = $1`,
+                  vehicle.id,
+                ),
+              ).rejects.toThrow();
+              await tx.$executeRawUnsafe(
+                `ROLLBACK TO SAVEPOINT required_${index}`,
+              );
             }
             throw rollback;
           },
