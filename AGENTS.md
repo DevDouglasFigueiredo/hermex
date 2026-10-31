@@ -28,9 +28,10 @@ As instruções locais complementam estas regras no respectivo diretório.
 - `apps/api`: NestJS, TypeScript, GraphQL code-first e Prisma.
 - PostgreSQL local: `docker-compose.yaml`, com volume nomeado.
 - Use PNPM e preserve `pnpm-lock.yaml`; não introduza outros lockfiles.
-- Para instalar bibliotecas Node.js, use sempre `pnpm install`, com o filtro
-  da aplicação e `-D` quando a dependência for de desenvolvimento. Deixe o PNPM
-  atualizar o manifesto e o lockfile; nunca edite `package.json` manualmente.
+- Use `pnpm install` para instalar dependências já declaradas e `pnpm add` para
+  adicionar novas bibliotecas, com o filtro da aplicação e `-D` quando forem
+  dependências de desenvolvimento. Deixe o PNPM atualizar o manifesto e o
+  lockfile; nunca edite `package.json` manualmente.
 - Execute comandos a partir da raiz, usando os atalhos ou `pnpm --filter`.
 - Siga o estilo dos arquivos próximos e evite abstrações sem uso concreto.
 - Não edite artefatos gerados (`node_modules`, `.next`, `dist`, Prisma Client).

@@ -6,17 +6,23 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { HealthResolver } from './health/health.resolver.js';
+import { VehiclesModule } from './vehicles/vehicles.module.js';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env', '../../.env'] }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env', '../../.env'],
+    }),
     PrismaModule,
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: true,
       sortSchema: true,
+      graphiql: process.env.NODE_ENV !== 'production',
       introspection: process.env.NODE_ENV !== 'production',
     }),
+    VehiclesModule,
   ],
   controllers: [AppController],
   providers: [AppService, HealthResolver],

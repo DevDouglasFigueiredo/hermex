@@ -1,0 +1,30 @@
+@font-face {
+  font-family: Inter;
+  src: url("/fonts/inter.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Exo 2";
+  src: url("/fonts/exo2.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Material Icons";
+  src: url("/fonts/material-icons.ttf") format("truetype");
+  font-weight: 400;
+  font-display: block;
+}
+
+@theme {
+  --color-brand-primary: #f29849;
+  --color-brand-primary-dark: #e28634;
+  --color-brand-secondary: #1d2f40;
+  --color-brand-secondary-dark: #23384d;
+  --color-neutral-text: #444444;
+  --color-neutral-details: #e7e7e7;
+  --font-body: Inter, Arial, sans-serif;
+  --font-heading: "Exo 2", Arial, sans-serif;
+  --shadow-card: 0 0 20px #84848433;
+}

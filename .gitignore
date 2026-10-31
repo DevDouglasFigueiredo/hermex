@@ -9,3 +9,7 @@ coverage/
 apps/api/src/generated/
 apps/api/src/schema.gql
 .pnpm-store/
+
+storybook-static/
+
+.playwright-mcp/

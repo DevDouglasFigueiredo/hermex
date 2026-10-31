@@ -17,6 +17,7 @@ pnpm install
 cp .env.example .env
 pnpm db:up
 pnpm db:generate
+pnpm --filter @hermex/api exec prisma migrate deploy
 pnpm dev
 ```
 
@@ -49,7 +50,9 @@ apps/api/prisma/           Schema e futuras migrations
 
 Atomic Design: atoms são elementos básicos; molecules combinam atoms;
 organisms compõem seções; templates definem a estrutura das páginas.
-As páginas ficam em `src/app`. Componentes serão criados conforme as telas forem definidas.
+As páginas ficam em `src/app`. Os átomos e moléculas da página inicial estão
+disponíveis isoladamente; veja o [inventário](apps/web/src/components/README.md).
+A montagem da página ainda não foi implementada.
 
 ## Comandos na raiz
 
@@ -70,7 +73,8 @@ As páginas ficam em `src/app`. Componentes serão criados conforme as telas for
 
 O PostgreSQL 18 persiste dados no volume nomeado `postgres_data`, montado em
 `/var/lib/postgresql`. O banco é exposto somente em localhost. Não existem
-modelos de negócio nem migrations nesta etapa; não foram presumidas regras da locadora.
+outros modelos de negócio além de `Vehicle`. A migration inicial de Vehicle deve
+ser aplicada antes de consultar a listagem.
 
 ## Autenticação e próximas etapas
 
@@ -95,3 +99,38 @@ pnpm build
 
 Os testes e2e substituem o serviço Prisma; verificam a integração HTTP/GraphQL,
 sem exigir banco. A query `health` com API em execução valida a conexão real.
+
+## Storybook
+
+```bash
+pnpm --filter @hermex/web storybook
+pnpm --filter @hermex/web build-storybook
+```
+
+Acesse http://localhost:6006 para explorar os 20 componentes da página inicial
+em 54 histórias, organizadas em Átomos e Moléculas. Não requer API nem banco.
+A configuração fica em `apps/web/.storybook`; os estilos usam Tailwind e os
+assets/fontes do design são locais. Detalhes no [README do front-end](apps/web/README.md).
+
+## Consulta inicial de veículos
+
+Com banco e API em execução, abra http://localhost:3001/graphql no navegador
+(GraphiQL em desenvolvimento) e execute:
+
+```graphql
+query {
+  vehicles {
+    model
+  }
+}
+```
+
+A query lê os veículos persistidos no PostgreSQL; sem registros, retorna
+`{"data":{"vehicles":[]}}`. Também expõe `id`, `brand`, `year`, `licensePlate`,
+`dailyRate` e `available`. Cadastro ainda não foi implementado.
+
+Teste adicional com banco real e rollback das fixtures:
+
+```bash
+pnpm --filter @hermex/api test:integration
+```

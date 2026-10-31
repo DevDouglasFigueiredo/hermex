@@ -8,4 +8,14 @@ datasource db {
   provider = "postgresql"
 }
 
-// Modelos serão adicionados nas próximas etapas, conforme os requisitos.
+// CHECK de diária positiva e normalização de placa são mantidos na migration SQL.
+
+model Vehicle {
+  id           String  @id @default(cuid())
+  brand        String
+  model        String
+  year         Int
+  licensePlate String  @unique
+  dailyRate    Decimal @db.Decimal(10, 2)
+  available    Boolean @default(true)
+}
