@@ -22,12 +22,13 @@ describe('VehiclesService', () => {
     findMany.mockResolvedValue([]);
     await expect(service.findAll()).resolves.toEqual([]);
     expect(findMany).toHaveBeenCalledExactlyOnceWith({
+      where: { available: true },
       include: { category: true },
     });
   });
 
   it.each(['MANUAL', 'AUTOMATIC'])(
-    'consulta todos os veículos e converte Decimal para número sem ocultar indisponíveis (%s)',
+    'consulta todos os veículos e converte Decimal para número com disponibilidade filtrada no banco (%s)',
     async (transmission) => {
       const vehicle = {
         id: 'vehicle-1',
@@ -36,7 +37,7 @@ describe('VehiclesService', () => {
         year: 2026,
         licensePlate: 'ABC1D23',
         dailyRate: new Prisma.Decimal('120.50'),
-        available: false,
+        available: true,
         category: { id: 'category-1', name: 'Hatch' },
         transmission,
         imageUrl:
@@ -47,6 +48,22 @@ describe('VehiclesService', () => {
         { ...vehicle, dailyRate: 120.5 },
       ]);
       expect(findMany).toHaveBeenCalledExactlyOnceWith({
+        where: { available: true },
+        include: { category: true },
+      });
+    },
+  );
+
+  it.each([null, 'category-1', '', 'inexistente'])(
+    'combina disponibilidade e categoria %s no banco, retornando [] sem correspondência',
+    async (categoryId) => {
+      findMany.mockResolvedValue([]);
+      await expect(service.findAll(categoryId)).resolves.toEqual([]);
+      expect(findMany).toHaveBeenCalledExactlyOnceWith({
+        where: {
+          available: true,
+          ...(categoryId == null ? {} : { categoryId }),
+        },
         include: { category: true },
       });
     },

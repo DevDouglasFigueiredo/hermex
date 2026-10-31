@@ -67,7 +67,7 @@ a sugestão inicial de sessões no banco foi substituída por essa restrição.
 - Banco vazio retorna `[]`; nenhuma carga inicial foi adicionada.
 - Migration inicial cria a tabela, índice único, CHECK da diária positiva/finita e trigger de normalização da placa.
 - GraphiQL habilitado fora de produção; a consulta `vehicles { model }` continua válida.
-- Cadastro/CRUD, filtros e paginação ficam para outras issues; campos de catálogo estão em HER-5.
+- Cadastro/CRUD e paginação ficam para outras issues; campos de catálogo estão em HER-5 e filtro em HER-7.
 
 ## Domínio de categorias — HER-6
 
@@ -78,7 +78,7 @@ a sugestão inicial de sessões no banco foi substituída por essa restrição.
 - Gerenciamento por seed/migration; sem mutations de CRUD.
 - Confirmado: resolver delega ao `CategoriesService`, que acessa o `PrismaService`,
   seguindo o padrão atual da API em lugar da injeção direta citada no card.
-- Relação Vehicle → Category entregue em HER-5; filtro de veículos permanece em HER-7.
+- Relação Vehicle → Category entregue em HER-5; filtro de veículos entregue em HER-7.
 
 ## Domínio de locais — HER-9
 
@@ -107,4 +107,15 @@ a sugestão inicial de sessões no banco foi substituída por essa restrição.
 - A query mantém os campos anteriores e adiciona `imageUrl: String`,
   `category: Category!` e `transmission: Transmission!`. Categoria vem por include
   no Prisma, sem consulta por veículo; diária continua convertida para número.
-- Sem CRUD, filtros, paginação ou mudanças de interface. HER-7 implementará o filtro.
+- Sem CRUD, filtros, paginação ou mudanças de interface. HER-7 implementa o filtro.
+
+## Filtro de veículos — HER-7
+
+- `vehicles(categoryId: ID)` retorna apenas `available: true`, com categoria populada.
+- Sem argumento ou com null, lista todas as categorias; um ID informado aplica
+  igualdade exata no banco. Categoria inexistente ou ID vazio retorna `[]`.
+- Resolver delega ao serviço; um único findMany usa where condicional e include.
+  Sem filtragem em memória, consulta nova ou migration.
+- Mudança intencional: veículos indisponíveis deixam de aparecer também nas
+  consultas antigas sem argumento. Retorno permanece `[Vehicle!]!`.
+- Integração do dropdown pertence à HER-18; paginação e busca permanecem pendentes.

@@ -7,8 +7,12 @@ import type { Vehicle } from './models/vehicle/vehicle.js';
 export class VehiclesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(): Promise<Vehicle[]> {
+  async findAll(categoryId?: string | null): Promise<Vehicle[]> {
     const vehicles = await this.prisma.vehicle.findMany({
+      where: {
+        available: true,
+        ...(categoryId == null ? {} : { categoryId }),
+      },
       include: { category: true },
     });
     return vehicles.map((vehicle) => ({

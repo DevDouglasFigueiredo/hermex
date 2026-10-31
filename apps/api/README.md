@@ -31,7 +31,7 @@ VehiclesService. Campos adicionais: `id`, `brand`, `year`, `licensePlate`,
 - `year`: ano-modelo inteiro, sem limites de negócio (respeita Int de 32 bits).
 - `dailyRate`: BRL em Decimal(10,2), positivo, finito e sem valor padrão;
   convertido explicitamente para Float na resposta GraphQL.
-- `available`: booleano, padrão true; a listagem ainda inclui indisponíveis.
+- `available`: booleano, padrão true; a listagem retorna apenas disponíveis desde a HER-7.
 - Placa única normalizada para maiúsculas e sem hífen/espaços por trigger.
 - Nenhum seed de veículos foi adicionado. Categoria, imagem e transmissão estão na HER-5.
 
@@ -117,7 +117,7 @@ query {
 
 `imageUrl` pode ser null. Categoria e transmissão são obrigatórias; transmissão
 aceita `MANUAL` ou `AUTOMATIC`. A consulta antiga `vehicles { model }` continua
-válida. Não há novo filtro ou mutation.
+válida. A HER-5 não adicionou filtro ou mutation; o filtro está descrito na HER-7.
 
 A migration `20261031202117_add_vehicle_category_image_transmission` adiciona
 campos sem defaults de negócio e preserva as restrições de placa e diária.
@@ -131,3 +131,33 @@ transmissões, obrigatoriedade e restrições anteriores no PostgreSQL real com
 rollback das fixtures. Worktrees isolam código e dependências, mas este ambiente
 utiliza o mesmo banco local: esta migration também altera o schema visto pelas
 outras worktrees.
+
+## Filtro de veículos — HER-7
+
+A consulta existente agora retorna somente veículos disponíveis. Para filtrar
+por categoria, envie o ID obtido em `categories`:
+
+```graphql
+query Vehicles($categoryId: ID) {
+  vehicles(categoryId: $categoryId) {
+    id
+    model
+    available
+    category { id name }
+    imageUrl
+    transmission
+  }
+}
+```
+
+Sem `categoryId`, ou com null, retorna disponíveis de todas as categorias.
+Categoria inexistente ou string vazia retorna `[]`, sem erro. Veículos com
+`available: false` não aparecem em nenhum caso. A filtragem acontece no PostgreSQL
+via Prisma, incluindo a categoria sem consultas por veículo. A query antiga
+`vehicles { model }` continua válida, com a nova regra de disponibilidade.
+
+Não há migration nova, paginação ou alteração de frontend. A implementação da
+HER-7 foi baseada no commit `b421fd5` da HER-5; essa dependência precisa estar
+integrada antes do merge desta entrega. Verifique com testes unitários, e2e
+(Prisma substituído) e `pnpm --filter @hermex/api test:integration` (PostgreSQL
+real, duas categorias e disponíveis/indisponíveis com rollback de fixtures).

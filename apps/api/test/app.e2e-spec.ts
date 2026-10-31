@@ -63,7 +63,7 @@ describe('AppController (e2e)', () => {
       year: 2026,
       licensePlate: 'ABC1D23',
       dailyRate: new Prisma.Decimal('120.50'),
-      available: false,
+      available: true,
       category: { id: 'category-1', name: 'Hatch' },
       transmission: 'MANUAL',
       imageUrl: null,
@@ -119,11 +119,77 @@ describe('AppController (e2e)', () => {
         },
       });
       expect(findMany).toHaveBeenCalledExactlyOnceWith({
+        where: { available: true },
         include: { category: true },
       });
       expect(findCategories).not.toHaveBeenCalled();
     },
   );
+
+  it.each([undefined, null, 'category-1', 'inexistente', ''])(
+    'encaminha categoryId %s para o filtro Prisma mantendo available true',
+    async (categoryId) => {
+      const category = { id: 'category-1', name: 'Hatch' };
+      const matches = categoryId == null || categoryId === category.id;
+      findMany.mockResolvedValue(
+        matches
+          ? [
+              {
+                id: 'vehicle-1',
+                category,
+                transmission: 'MANUAL',
+                available: true,
+                dailyRate: new Prisma.Decimal('120.50'),
+              },
+            ]
+          : [],
+      );
+      const response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query:
+            'query($categoryId: ID) { vehicles(categoryId: $categoryId) { id available category { id name } } }',
+          variables: { categoryId },
+        })
+        .expect(200);
+      expect(response.body).toEqual({
+        data: {
+          vehicles: matches
+            ? [
+                {
+                  id: 'vehicle-1',
+                  available: true,
+                  category,
+                },
+              ]
+            : [],
+        },
+      });
+      expect(findMany).toHaveBeenCalledExactlyOnceWith({
+        where: {
+          available: true,
+          ...(categoryId == null ? {} : { categoryId }),
+        },
+        include: { category: true },
+      });
+    },
+  );
+
+  it('expõe categoryId como ID opcional na query vehicles', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/graphql')
+      .send({
+        query:
+          '{ __schema { queryType { fields { name args { name type { kind name } } } } } }',
+      })
+      .expect(200);
+    const vehicles = response.body.data.__schema.queryType.fields.find(
+      (field: { name: string }) => field.name === 'vehicles',
+    );
+    expect(vehicles.args).toEqual([
+      { name: 'categoryId', type: { kind: 'SCALAR', name: 'ID' } },
+    ]);
+  });
 
   it('expõe somente MANUAL e AUTOMATIC no enum Transmission', async () => {
     const response = await request(app.getHttpServer())
