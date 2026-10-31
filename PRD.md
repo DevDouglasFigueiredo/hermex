@@ -50,7 +50,7 @@ a sugestão inicial de sessões no banco foi substituída por essa restrição.
 - Referência: Figma Hermex, frame `2:3` (1920 | Página Inicial).
 - Implementados 9 átomos e 11 moléculas com Tailwind, isolados da página.
 - Storybook em `apps/web`, com 54 histórias e documentação de cada componente.
-- Página, organismos, integração de busca, categorias reais, horários, links sociais
+- Página, demais organismos, integração de busca, categorias reais, horários, links sociais
   oficiais e navegação de detalhes dependem das próximas etapas.
 - Inventário e decisões visuais: `apps/web/src/components/README.md`.
 
@@ -94,3 +94,15 @@ a sugestão inicial de sessões no banco foi substituída por essa restrição.
   Rio de Janeiro/RJ e São Paulo/SP, com endereços identificados como demonstração.
 - Sem CRUD ou relação com Vehicle. Consumo pelos seletores e busca por data/local
   (HER-10) ficam para as próximas entregas.
+
+## Grade de veículos — HER-14
+
+- Organismo `VehicleGrid` presentacional, com `CategoryFilter` controlado,
+  `VehicleCard` existente e layout de 1/2/3 colunas (mobile/tablet/desktop).
+- Recebe veículos, categorias e seleção por props; emite categoria (ou `null`)
+  e ID do veículo para detalhes. Não busca nem filtra dados internamente.
+- Lista vazia mantém o filtro e exibe “Nenhum veículo encontrado”.
+- Contrato reutiliza `image`, `dailyRate` e `onDetails` do card existente;
+  `CategoryFilter` corresponde ao Dropdown mencionado na issue.
+- Quatro histórias com dados demonstrativos e verificações de callbacks/estado
+  vazio. Montagem da home permanece na HER-16; integração real na HER-17.
