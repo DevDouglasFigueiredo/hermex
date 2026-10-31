@@ -7,6 +7,8 @@ import { AppService } from './app.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { HealthResolver } from './health/health.resolver.js';
 import { VehiclesModule } from './vehicles/vehicles.module.js';
+import { CategoriesModule } from './categories/categories.module.js';
+import { LocationsModule } from './locations/locations.module.js';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { VehiclesModule } from './vehicles/vehicles.module.js';
       introspection: process.env.NODE_ENV !== 'production',
     }),
     VehiclesModule,
+    CategoriesModule,
+    LocationsModule,
   ],
   controllers: [AppController],
   providers: [AppService, HealthResolver],

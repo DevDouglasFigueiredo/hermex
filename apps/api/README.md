@@ -62,3 +62,39 @@ com migration aplicada e testa persistência, placa normalizada/única, diária
 positiva, valores de ano sem limites de negócio, leitura pelo serviço e conversão
 Decimal. Ele usa transação com rollback, sem inserir carga inicial nem apagar dados
 existentes. Pode ser executado novamente sem acumular fixtures.
+
+## Categorias — HER-6
+
+`CategoriesModule` expõe `categories { id name }`, ordenada por nome ASC.
+O resolver delega ao serviço, com acesso ao banco pelo `PrismaService`.
+`Category` persiste CUID, nome único e datas de criação/atualização.
+
+Após aplicar migrations e gerar o client, execute na raiz:
+
+```bash
+pnpm --filter @hermex/api exec prisma db seed
+```
+
+O seed usa upsert por nome para Hatch, Sedan, SUV, Minivan e Picape, sem duplicar
+registros nas próximas execuções. Não há CRUD. A relação com Vehicle fica para HER-5.
+O teste real de categorias requer migration e seed aplicados e preserva os dados.
+
+## Locais — HER-9
+
+`LocationsModule` publica `locations { id name address city state }` por resolver
+que delega ao serviço e ao Prisma. Lista completa, ordenada por nome ASC e sem
+paginação. Campos públicos obrigatórios; datas ficam no banco.
+
+`Location` tem CUID, nome único, endereço, cidade, state e datas. O CHECK
+`Location_state_length_check` na migration exige exatamente dois caracteres em
+state, sem normalização ou validação contra UFs brasileiras. Preserve esse CHECK
+nas próximas migrations. Sem CRUD ou relação com Vehicle.
+
+Após aplicar migrations e gerar o client, `pnpm --filter @hermex/api exec prisma db seed`
+na raiz cria três locais fictícios em cidades distintas e mantém as categorias.
+O upsert pelo nome não altera registros existentes. Configuração e consulta de
+exemplo estão no README da raiz.
+
+A suíte `test:integration` verifica restrições com rollback e executa o seed duas
+vezes no banco real, preservando IDs e dados existentes. Os exemplos são mantidos
+no banco de desenvolvimento. E2e continuam usando Prisma substituído.

@@ -68,3 +68,29 @@ a sugestão inicial de sessões no banco foi substituída por essa restrição.
 - Migration inicial cria a tabela, índice único, CHECK da diária positiva/finita e trigger de normalização da placa.
 - GraphiQL habilitado fora de produção; a consulta `vehicles { model }` continua válida.
 - Cadastro/CRUD, categoria, imagem, transmissão, filtros e paginação ficam para outras issues.
+
+## Domínio de categorias — HER-6
+
+- `Category`: `id` CUID automático, `name` único, `createdAt` e `updatedAt`.
+- Query GraphQL `categories { id name }`, sem paginação, ordenada por `name` ASC;
+  sem registros retorna `[]`. Datas são campos de persistência.
+- Seed idempotente com Hatch, Sedan, SUV, Minivan e Picape, via upsert pelo nome.
+- Gerenciamento por seed/migration; sem mutations de CRUD.
+- Confirmado: resolver delega ao `CategoriesService`, que acessa o `PrismaService`,
+  seguindo o padrão atual da API em lugar da injeção direta citada no card.
+- Relação Vehicle → Category e filtro de veículos permanecem em HER-5 e HER-7.
+
+## Domínio de locais — HER-9
+
+- `Location`: CUID automático, `name` único, `address`, `city`, `state`,
+  `createdAt` e `updatedAt`; todos obrigatórios.
+- Confirmado: `state` exige exatamente dois caracteres por CHECK no PostgreSQL,
+  sem catálogo de UFs ou normalização automática.
+- GraphQL `locations { id name address city state }`, sem argumentos/paginação,
+  ordenada por nome ASC; sem registros retorna `[]`. Datas ficam na persistência.
+- Resolver delega ao `LocationsService`, que usa o `PrismaService`.
+- Seed compartilhado com categorias, idempotente por nome e sem sobrescrever
+  registros existentes. Confirmados três exemplos fictícios em Belo Horizonte/MG,
+  Rio de Janeiro/RJ e São Paulo/SP, com endereços identificados como demonstração.
+- Sem CRUD ou relação com Vehicle. Consumo pelos seletores e busca por data/local
+  (HER-10) ficam para as próximas entregas.
