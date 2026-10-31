@@ -50,7 +50,7 @@ a sugestão inicial de sessões no banco foi substituída por essa restrição.
 - Referência: Figma Hermex, frame `2:3` (1920 | Página Inicial).
 - Implementados 9 átomos e 11 moléculas com Tailwind, isolados da página.
 - Storybook em `apps/web`, com 54 histórias e documentação de cada componente.
-- Página, organismos, integração de busca, categorias reais, horários, links sociais
+- Página, demais organismos, integração de busca, categorias reais, horários, links sociais
   oficiais e navegação de detalhes dependem das próximas etapas.
 - Inventário e decisões visuais: `apps/web/src/components/README.md`.
 
@@ -94,3 +94,16 @@ a sugestão inicial de sessões no banco foi substituída por essa restrição.
   Rio de Janeiro/RJ e São Paulo/SP, com endereços identificados como demonstração.
 - Sem CRUD ou relação com Vehicle. Consumo pelos seletores e busca por data/local
   (HER-10) ficam para as próximas entregas.
+
+## Rodapé — HER-15
+
+- Organismo `Footer` estático, com logo inverso, créditos em branco, fundo
+  `brand-secondary` (#1D2F40) e redes sociais via props obrigatórias
+  `socialLinks` (WhatsApp, Instagram e TikTok).
+- Confirmado pelo usuário: seguir o Figma para créditos centralizados no desktop
+  e texto “O carro ideal para sua ocasião”, em lugar da posição/texto do card.
+- Layout empilha no mobile; links têm nomes acessíveis, foco visível e abrem em
+  nova aba. Reutiliza `Logo` com `variant="inverse"` e `SocialIcon` com `network`,
+  preservando seus contratos reais e os assets existentes.
+- Duas histórias com links explicitamente demonstrativos. Não há URLs oficiais
+  definidas, busca de dados ou montagem da home; composição permanece na HER-16.
