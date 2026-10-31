@@ -1,0 +1,26 @@
+{
+  "name": "hermex",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@12.14.0",
+  "engines": {
+    "node": ">=24 <25",
+    "pnpm": ">=12 <13"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @hermex/web --filter @hermex/api dev",
+    "dev:web": "pnpm --filter @hermex/web dev",
+    "dev:api": "pnpm --filter @hermex/api dev",
+    "build": "pnpm --filter @hermex/api build && pnpm --filter @hermex/web build",
+    "typecheck": "pnpm --filter @hermex/api typecheck && pnpm --filter @hermex/web typecheck",
+    "test": "pnpm --filter @hermex/api test",
+    "test:e2e": "pnpm --filter @hermex/api test:e2e",
+    "db:up": "docker compose up -d --wait postgres",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f postgres",
+    "db:generate": "pnpm --filter @hermex/api db:generate",
+    "db:validate": "pnpm --filter @hermex/api db:validate",
+    "db:migrate": "pnpm --filter @hermex/api db:migrate",
+    "db:studio": "pnpm --filter @hermex/api db:studio"
+  }
+}
