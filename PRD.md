@@ -95,6 +95,7 @@ a sugestão inicial de sessões no banco foi substituída por essa restrição.
 - Sem CRUD ou relação com Vehicle. Consumo pelos seletores e busca por data/local
   (HER-10) ficam para as próximas entregas.
 
+<<<<<<< HEAD
 ## Grade de veículos — HER-14
 
 - Organismo `VehicleGrid` presentacional, com `CategoryFilter` controlado,
@@ -106,3 +107,17 @@ a sugestão inicial de sessões no banco foi substituída por essa restrição.
   `CategoryFilter` corresponde ao Dropdown mencionado na issue.
 - Quatro histórias com dados demonstrativos e verificações de callbacks/estado
   vazio. Montagem da home permanece na HER-16; integração real na HER-17.
+=======
+## Rodapé — HER-15
+
+- Organismo `Footer` estático, com logo inverso, créditos em branco, fundo
+  `brand-secondary` (#1D2F40) e redes sociais via props obrigatórias
+  `socialLinks` (WhatsApp, Instagram e TikTok).
+- Confirmado pelo usuário: seguir o Figma para créditos centralizados no desktop
+  e texto “O carro ideal para sua ocasião”, em lugar da posição/texto do card.
+- Layout empilha no mobile; links têm nomes acessíveis, foco visível e abrem em
+  nova aba. Reutiliza `Logo` com `variant="inverse"` e `SocialIcon` com `network`,
+  preservando seus contratos reais e os assets existentes.
+- Duas histórias com links explicitamente demonstrativos. Não há URLs oficiais
+  definidas, busca de dados ou montagem da home; composição permanece na HER-16.
+>>>>>>> feat/her-15-footer

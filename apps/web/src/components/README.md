@@ -34,9 +34,8 @@ sem busca, lista, estado de domínio ou acesso a dados. `DailyRate` é uma molé
 por combinar valor e unidade; não precisamos criar átomos para cada `span`.
 A classificação serve à composição e não exige componentes para todo elemento HTML.
 
-Header, busca completa (duas linhas + botão), banner, seção social com título
-e rodapé são composições de organismos/templates ainda pendentes. A grade foi
-implementada isoladamente na HER-14.
+Header, busca completa (duas linhas + botão), banner, grade, seção social com título
+e rodapé são composições de organismos/templates. Não foram implementados.
 Os assets exclusivos do banner não foram baixados nem expostos como componentes.
 
 ## Tokens e fidelidade
@@ -78,18 +77,3 @@ Componentes usam props HTML e dados explícitos. Quando houver requisito de neg�
 a página/organismo será responsável por buscar dados, validar período, decidir
 navegação e conectar callbacks. Não há integração com API, login, reserva ou filtros
 funcionais de catálogo nesta etapa.
-
-## Organismo VehicleGrid — HER-14
-
-Exportado por `organisms/index.ts`. Recebe `vehicles` (ID mais props de
-`VehicleCard`, sem `onDetails`), `categories` (`id`/`name`),
-`selectedCategoryId` (`string | null`), `onCategoryChange` e `onDetailsClick`.
-Reutiliza `CategoryFilter` e os cards sem alterar seus contratos. O consumidor
-controla a seleção e os veículos exibidos; o organismo não consulta API nem filtra.
-
-Fundo branco, filtro no topo e grade de 1/2/3 colunas nos breakpoints padrão
-mobile/md/lg. Sem veículos, exibe “Nenhum veículo encontrado” e mantém o filtro.
-As quatro histórias cobrem nove veículos demonstrativos, seleção, estado vazio
-e callbacks. A seleção nas histórias usa estado React local demonstrativo; somente a
-história de categoria selecionada recebe uma lista demonstrativa reduzida.
-A página inicial permanece fora do escopo.
