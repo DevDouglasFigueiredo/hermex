@@ -72,9 +72,9 @@ A montagem da página ainda não foi implementada.
 | `pnpm db:studio` | Abre Prisma Studio |
 
 O PostgreSQL 18 persiste dados no volume nomeado `postgres_data`, montado em
-`/var/lib/postgresql`. O banco é exposto somente em localhost. Não existem
-outros modelos de negócio além de `Vehicle`. A migration inicial de Vehicle deve
-ser aplicada antes de consultar a listagem.
+`/var/lib/postgresql`. O banco é exposto somente em localhost. Existem
+`Vehicle`, `Category` e `Location` como modelos de negócio. Aplique as migrations
+versionadas antes de consultar as listagens.
 
 ## Autenticação e próximas etapas
 
@@ -134,3 +134,67 @@ Teste adicional com banco real e rollback das fixtures:
 ```bash
 pnpm --filter @hermex/api test:integration
 ```
+
+## Categorias — HER-6
+
+Após aplicar as migrations e gerar o client, execute na raiz:
+
+```bash
+pnpm --filter @hermex/api exec prisma db seed
+```
+
+O seed cria Hatch, Sedan, SUV, Minivan e Picape. Pode ser repetido sem duplicar
+registros ou substituir categorias existentes. No Prisma 7, o seed é explícito;
+execute-o também em novos ambientes. O runner TypeScript `tsx` é dependência de
+desenvolvimento da API.
+
+```graphql
+query {
+  categories {
+    id
+    name
+  }
+}
+```
+
+A consulta retorna todas as categorias em ordem crescente por nome, sem paginação.
+Não há mutations de categoria. A relação com veículos e o filtro serão entregues
+em HER-5 e HER-7. O teste de integração de categorias exige migration e seed
+aplicados; verifica os registros reais sem removê-los.
+
+## Locais — HER-9
+
+Aplique as migrations e execute o seed compartilhado, na raiz:
+
+```bash
+pnpm --filter @hermex/api exec prisma migrate deploy
+pnpm db:generate
+pnpm --filter @hermex/api exec prisma db seed
+```
+
+O seed mantém as categorias e adiciona três locais fictícios em Belo Horizonte/MG,
+Rio de Janeiro/RJ e São Paulo/SP. Endereços são de demonstração. Repetir o comando
+preserva IDs e dados já existentes, sem duplicar registros por nome.
+
+```graphql
+query {
+  locations {
+    id
+    name
+    address
+    city
+    state
+  }
+}
+```
+
+Retorna todos os locais ordenados por nome ASC; banco vazio retorna `[]`.
+Nome é único e `state` exige exatamente dois caracteres, sem validar catálogo de
+UFs ou normalizar valores. Não há CRUD nem relação com veículos nesta etapa.
+O frontend poderá consumir esta consulta nos seletores de retirada e devolução;
+a busca por data/local pertence à HER-10.
+
+`pnpm --filter @hermex/api test:integration` também verifica restrições de Location
+com rollback de fixtures e executa o seed compartilhado duas vezes, conferindo
+idempotência e preservação dos registros existentes. Os exemplos do seed ficam
+persistidos; execute essa suíte no PostgreSQL de desenvolvimento.
