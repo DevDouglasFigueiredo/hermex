@@ -63,14 +63,17 @@ describe('AppController (e2e)', () => {
       year: 2026,
       licensePlate: 'ABC1D23',
       dailyRate: new Prisma.Decimal('120.50'),
-      available: false,
+      available: true,
+      category: { id: 'category-1', name: 'Hatch' },
+      transmission: 'MANUAL',
+      imageUrl: null,
     };
     findMany.mockResolvedValue([vehicle]);
     const response = await request(app.getHttpServer())
       .post('/graphql')
       .send({
         query:
-          '{ vehicles { id brand model year licensePlate dailyRate available } }',
+          '{ vehicles { id brand model year licensePlate dailyRate available imageUrl category { id name } transmission } }',
       })
       .expect(200);
     expect(response.body).toEqual({
@@ -83,12 +86,130 @@ describe('AppController (e2e)', () => {
     expect(legacy.body).toEqual({ data: { vehicles: [{ model: 'HB20' }] } });
   });
 
+  it.each(['MANUAL', 'AUTOMATIC'])(
+    'retorna categoria, imagem e transmissão %s',
+    async (transmission) => {
+      const vehicle = {
+        id: 'vehicle-1',
+        model: 'HB20',
+        dailyRate: new Prisma.Decimal('120.50'),
+        category: { id: 'category-1', name: 'Hatch' },
+        transmission,
+        imageUrl:
+          transmission === 'MANUAL' ? null : 'https://example.com/car.jpg',
+      };
+      findMany.mockResolvedValue([vehicle]);
+      const response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query:
+            '{ vehicles { model imageUrl category { id name } transmission } }',
+        })
+        .expect(200);
+      expect(response.body).toEqual({
+        data: {
+          vehicles: [
+            {
+              model: vehicle.model,
+              imageUrl: vehicle.imageUrl,
+              category: vehicle.category,
+              transmission,
+            },
+          ],
+        },
+      });
+      expect(findMany).toHaveBeenCalledExactlyOnceWith({
+        where: { available: true },
+        include: { category: true },
+      });
+      expect(findCategories).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([undefined, null, 'category-1', 'inexistente', ''])(
+    'encaminha categoryId %s para o filtro Prisma mantendo available true',
+    async (categoryId) => {
+      const category = { id: 'category-1', name: 'Hatch' };
+      const matches = categoryId == null || categoryId === category.id;
+      findMany.mockResolvedValue(
+        matches
+          ? [
+              {
+                id: 'vehicle-1',
+                category,
+                transmission: 'MANUAL',
+                available: true,
+                dailyRate: new Prisma.Decimal('120.50'),
+              },
+            ]
+          : [],
+      );
+      const response = await request(app.getHttpServer())
+        .post('/graphql')
+        .send({
+          query:
+            'query($categoryId: ID) { vehicles(categoryId: $categoryId) { id available category { id name } } }',
+          variables: { categoryId },
+        })
+        .expect(200);
+      expect(response.body).toEqual({
+        data: {
+          vehicles: matches
+            ? [
+                {
+                  id: 'vehicle-1',
+                  available: true,
+                  category,
+                },
+              ]
+            : [],
+        },
+      });
+      expect(findMany).toHaveBeenCalledExactlyOnceWith({
+        where: {
+          available: true,
+          ...(categoryId == null ? {} : { categoryId }),
+        },
+        include: { category: true },
+      });
+    },
+  );
+
+  it('expõe categoryId como ID opcional na query vehicles', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/graphql')
+      .send({
+        query:
+          '{ __schema { queryType { fields { name args { name type { kind name } } } } } }',
+      })
+      .expect(200);
+    const vehicles = response.body.data.__schema.queryType.fields.find(
+      (field: { name: string }) => field.name === 'vehicles',
+    );
+    expect(vehicles.args).toEqual([
+      { name: 'categoryId', type: { kind: 'SCALAR', name: 'ID' } },
+    ]);
+  });
+
+  it('expõe somente MANUAL e AUTOMATIC no enum Transmission', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/graphql')
+      .send({
+        query: '{ __type(name: "Transmission") { kind enumValues { name } } }',
+      })
+      .expect(200);
+    expect(response.body.data.__type).toEqual({
+      kind: 'ENUM',
+      enumValues: [{ name: 'AUTOMATIC' }, { name: 'MANUAL' }],
+    });
+  });
+
   it('publica tipos obrigatórios no contrato GraphQL', async () => {
     const response = await request(app.getHttpServer())
       .post('/graphql')
       .send({
         query:
-          '{ __type(name: "Vehicle") { fields { name type { kind ofType { name } } } } }',
+          '{ __type(name: "Vehicle") { fields { name type { kind name ofType { name } } } } }',
       })
       .expect(200);
     const fields = response.body.data.__type.fields;
@@ -97,8 +218,15 @@ describe('AppController (e2e)', () => {
         fields.map(
           (field: {
             name: string;
-            type: { kind: string; ofType: { name: string } };
-          }) => [field.name, [field.type.kind, field.type.ofType.name]],
+            type: {
+              kind: string;
+              name: string | null;
+              ofType: { name: string } | null;
+            };
+          }) => [
+            field.name,
+            [field.type.kind, field.type.ofType?.name ?? field.type.name],
+          ],
         ),
       ),
     ).toEqual({
@@ -109,6 +237,9 @@ describe('AppController (e2e)', () => {
       licensePlate: ['NON_NULL', 'String'],
       dailyRate: ['NON_NULL', 'Float'],
       available: ['NON_NULL', 'Boolean'],
+      imageUrl: ['SCALAR', 'String'],
+      category: ['NON_NULL', 'Category'],
+      transmission: ['NON_NULL', 'Transmission'],
     });
   });
 

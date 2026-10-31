@@ -1,6 +1,6 @@
 generator client {
-  provider = "prisma-client"
-  output = "../src/generated/prisma"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
   moduleFormat = "esm"
 }
 
@@ -11,20 +11,25 @@ datasource db {
 // CHECK de diária positiva e normalização de placa são mantidos na migration SQL.
 
 model Vehicle {
-  id           String  @id @default(cuid())
+  id           String   @id @default(cuid())
   brand        String
   model        String
   year         Int
-  licensePlate String  @unique
-  dailyRate    Decimal @db.Decimal(10, 2)
-  available    Boolean @default(true)
+  licensePlate String   @unique
+  dailyRate    Decimal  @db.Decimal(10, 2)
+  available    Boolean  @default(true)
+  imageUrl     String?
+  categoryId   String
+  category     Category @relation(fields: [categoryId], references: [id])
+  transmission String
 }
 
 model Category {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  vehicles  Vehicle[]
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 // A migration SQL garante exatamente dois caracteres em state.

@@ -31,9 +31,9 @@ VehiclesService. Campos adicionais: `id`, `brand`, `year`, `licensePlate`,
 - `year`: ano-modelo inteiro, sem limites de negócio (respeita Int de 32 bits).
 - `dailyRate`: BRL em Decimal(10,2), positivo, finito e sem valor padrão;
   convertido explicitamente para Float na resposta GraphQL.
-- `available`: booleano, padrão true; a listagem ainda inclui indisponíveis.
+- `available`: booleano, padrão true; a listagem retorna apenas disponíveis desde a HER-7.
 - Placa única normalizada para maiúsculas e sem hífen/espaços por trigger.
-- Nenhum seed foi adicionado. Categoria, imagem e transmissão ficam para US01.
+- Nenhum seed de veículos foi adicionado. Categoria, imagem e transmissão estão na HER-5.
 
 A migration foi gerada com `pnpm db:migrate --name create_vehicle --create-only`,
 revisada e aplicada com `pnpm db:migrate`. O CHECK de preço e a trigger são SQL
@@ -76,7 +76,7 @@ pnpm --filter @hermex/api exec prisma db seed
 ```
 
 O seed usa upsert por nome para Hatch, Sedan, SUV, Minivan e Picape, sem duplicar
-registros nas próximas execuções. Não há CRUD. A relação com Vehicle fica para HER-5.
+registros nas próximas execuções. Não há CRUD. A relação com Vehicle está implementada na HER-5.
 O teste real de categorias requer migration e seed aplicados e preserva os dados.
 
 ## Locais — HER-9
@@ -98,3 +98,66 @@ exemplo estão no README da raiz.
 A suíte `test:integration` verifica restrições com rollback e executa o seed duas
 vezes no banco real, preservando IDs e dados existentes. Os exemplos são mantidos
 no banco de desenvolvimento. E2e continuam usando Prisma substituído.
+
+## Categoria, imagem e transmissão — HER-5
+
+Após aplicar as migrations e gerar o client, a consulta aceita:
+
+```graphql
+query {
+  vehicles {
+    id
+    model
+    imageUrl
+    category { id name }
+    transmission
+  }
+}
+```
+
+`imageUrl` pode ser null. Categoria e transmissão são obrigatórias; transmissão
+aceita `MANUAL` ou `AUTOMATIC`. A consulta antiga `vehicles { model }` continua
+válida. A HER-5 não adicionou filtro ou mutation; o filtro está descrito na HER-7.
+
+A migration `20261031202117_add_vehicle_category_image_transmission` adiciona
+campos sem defaults de negócio e preserva as restrições de placa e diária.
+Foi aplicada no PostgreSQL local sem veículos. Se outro ambiente tiver veículos,
+a migration aborta antes das alterações: é necessário definir o mapeamento
+explícito de categoria e transmissão e preparar o backfill antes de aplicá-la.
+Não apague registros nem resete o banco para contornar essa proteção.
+
+Os testes unitários e e2e cobrem o contrato; `test:integration` verifica FK,
+transmissões, obrigatoriedade e restrições anteriores no PostgreSQL real com
+rollback das fixtures. Worktrees isolam código e dependências, mas este ambiente
+utiliza o mesmo banco local: esta migration também altera o schema visto pelas
+outras worktrees.
+
+## Filtro de veículos — HER-7
+
+A consulta existente agora retorna somente veículos disponíveis. Para filtrar
+por categoria, envie o ID obtido em `categories`:
+
+```graphql
+query Vehicles($categoryId: ID) {
+  vehicles(categoryId: $categoryId) {
+    id
+    model
+    available
+    category { id name }
+    imageUrl
+    transmission
+  }
+}
+```
+
+Sem `categoryId`, ou com null, retorna disponíveis de todas as categorias.
+Categoria inexistente ou string vazia retorna `[]`, sem erro. Veículos com
+`available: false` não aparecem em nenhum caso. A filtragem acontece no PostgreSQL
+via Prisma, incluindo a categoria sem consultas por veículo. A query antiga
+`vehicles { model }` continua válida, com a nova regra de disponibilidade.
+
+Não há migration nova, paginação ou alteração de frontend. A implementação da
+HER-7 foi baseada no commit `b421fd5` da HER-5; essa dependência precisa estar
+integrada antes do merge desta entrega. Verifique com testes unitários, e2e
+(Prisma substituído) e `pnpm --filter @hermex/api test:integration` (PostgreSQL
+real, duas categorias e disponíveis/indisponíveis com rollback de fixtures).

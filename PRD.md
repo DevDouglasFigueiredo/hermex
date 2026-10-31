@@ -67,7 +67,7 @@ a sugestão inicial de sessões no banco foi substituída por essa restrição.
 - Banco vazio retorna `[]`; nenhuma carga inicial foi adicionada.
 - Migration inicial cria a tabela, índice único, CHECK da diária positiva/finita e trigger de normalização da placa.
 - GraphiQL habilitado fora de produção; a consulta `vehicles { model }` continua válida.
-- Cadastro/CRUD, categoria, imagem, transmissão, filtros e paginação ficam para outras issues.
+- Cadastro/CRUD e paginação ficam para outras issues; campos de catálogo estão em HER-5 e filtro em HER-7.
 
 ## Domínio de categorias — HER-6
 
@@ -78,7 +78,7 @@ a sugestão inicial de sessões no banco foi substituída por essa restrição.
 - Gerenciamento por seed/migration; sem mutations de CRUD.
 - Confirmado: resolver delega ao `CategoriesService`, que acessa o `PrismaService`,
   seguindo o padrão atual da API em lugar da injeção direta citada no card.
-- Relação Vehicle → Category e filtro de veículos permanecem em HER-5 e HER-7.
+- Relação Vehicle → Category entregue em HER-5; filtro de veículos entregue em HER-7.
 
 ## Domínio de locais — HER-9
 
@@ -94,30 +94,3 @@ a sugestão inicial de sessões no banco foi substituída por essa restrição.
   Rio de Janeiro/RJ e São Paulo/SP, com endereços identificados como demonstração.
 - Sem CRUD ou relação com Vehicle. Consumo pelos seletores e busca por data/local
   (HER-10) ficam para as próximas entregas.
-
-<<<<<<< HEAD
-## Grade de veículos — HER-14
-
-- Organismo `VehicleGrid` presentacional, com `CategoryFilter` controlado,
-  `VehicleCard` existente e layout de 1/2/3 colunas (mobile/tablet/desktop).
-- Recebe veículos, categorias e seleção por props; emite categoria (ou `null`)
-  e ID do veículo para detalhes. Não busca nem filtra dados internamente.
-- Lista vazia mantém o filtro e exibe “Nenhum veículo encontrado”.
-- Contrato reutiliza `image`, `dailyRate` e `onDetails` do card existente;
-  `CategoryFilter` corresponde ao Dropdown mencionado na issue.
-- Quatro histórias com dados demonstrativos e verificações de callbacks/estado
-  vazio. Montagem da home permanece na HER-16; integração real na HER-17.
-=======
-## Rodapé — HER-15
-
-- Organismo `Footer` estático, com logo inverso, créditos em branco, fundo
-  `brand-secondary` (#1D2F40) e redes sociais via props obrigatórias
-  `socialLinks` (WhatsApp, Instagram e TikTok).
-- Confirmado pelo usuário: seguir o Figma para créditos centralizados no desktop
-  e texto “O carro ideal para sua ocasião”, em lugar da posição/texto do card.
-- Layout empilha no mobile; links têm nomes acessíveis, foco visível e abrem em
-  nova aba. Reutiliza `Logo` com `variant="inverse"` e `SocialIcon` com `network`,
-  preservando seus contratos reais e os assets existentes.
-- Duas histórias com links explicitamente demonstrativos. Não há URLs oficiais
-  definidas, busca de dados ou montagem da home; composição permanece na HER-16.
->>>>>>> feat/her-15-footer

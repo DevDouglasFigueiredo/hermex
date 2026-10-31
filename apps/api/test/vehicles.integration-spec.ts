@@ -12,6 +12,97 @@ config({
 });
 
 describe('Vehicle no PostgreSQL (migration aplicada)', () => {
+  it('filtra disponíveis de duas categorias no PostgreSQL e preserva dados com rollback', async () => {
+    const prisma = new PrismaClient({
+      adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
+    });
+    const rollback = new Error('rollback filtro');
+    const token = randomUUID().replaceAll('-', '');
+    try {
+      const before = await prisma.vehicle.count();
+      await expect(
+        prisma.$transaction(
+          async (tx) => {
+            const categories = await Promise.all(
+              ['A', 'B'].map((suffix) =>
+                tx.category.create({
+                  data: { name: `Filtro ${token}${suffix}` },
+                }),
+              ),
+            );
+            const fixtures = [];
+            for (const category of categories) {
+              for (const available of [true, false]) {
+                fixtures.push(
+                  await tx.vehicle.create({
+                    data: {
+                      brand: 'Teste',
+                      model: 'Filtro',
+                      year: 2026,
+                      licensePlate: `${token}${fixtures.length}`,
+                      dailyRate: new Prisma.Decimal('99.90'),
+                      categoryId: category.id,
+                      transmission: 'MANUAL',
+                      available,
+                    },
+                  }),
+                );
+              }
+            }
+            const service = new VehiclesService(tx as unknown as PrismaService);
+            const fixtureIds = new Set(fixtures.map((vehicle) => vehicle.id));
+            for (const categoryId of [
+              undefined,
+              null,
+              categories[0]!.id,
+              categories[1]!.id,
+              `missing-${token}`,
+              '',
+            ]) {
+              const result = await service.findAll(categoryId);
+              expect(result.every((vehicle) => vehicle.available)).toBe(true);
+              const expected = fixtures.filter(
+                (vehicle) =>
+                  vehicle.available &&
+                  (categoryId == null || vehicle.categoryId === categoryId),
+              );
+              expect(
+                result
+                  .filter((vehicle) => fixtureIds.has(vehicle.id))
+                  .map((vehicle) => vehicle.id)
+                  .sort(),
+              ).toEqual(expected.map((vehicle) => vehicle.id).sort());
+              if (categoryId != null) {
+                expect(result).toHaveLength(expected.length);
+              }
+              for (const vehicle of result.filter((vehicle) =>
+                fixtureIds.has(vehicle.id),
+              )) {
+                const category = categories.find(
+                  (category) => category.id === vehicle.category.id,
+                )!;
+                expect(vehicle.category).toMatchObject({
+                  id: category.id,
+                  name: category.name,
+                });
+              }
+            }
+            throw rollback;
+          },
+          { timeout: 15000 },
+        ),
+      ).rejects.toBe(rollback);
+      expect(await prisma.vehicle.count()).toBe(before);
+      expect(
+        await prisma.category.count({
+          where: { name: { startsWith: `Filtro ${token}` } },
+        }),
+      ).toBe(0);
+    } finally {
+      await prisma.$disconnect();
+    }
+  });
+
   it('persiste, normaliza placa, impõe restrições e lê pelo serviço sem deixar fixtures', async () => {
     const prisma = new PrismaClient({
       adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
@@ -24,12 +115,18 @@ describe('Vehicle no PostgreSQL (migration aplicada)', () => {
       year: -1,
       licensePlate: ` ${plate.toLowerCase().slice(0, 8)}-${plate.toLowerCase().slice(8)} `,
       dailyRate: new Prisma.Decimal('123.45'),
+      categoryId: '',
+      transmission: 'MANUAL',
     };
     try {
       const before = await prisma.vehicle.count();
       await expect(
         prisma.$transaction(
           async (tx) => {
+            const category = await tx.category.create({
+              data: { name: `Teste ${plate}` },
+            });
+            data.categoryId = category.id;
             const vehicle = await tx.vehicle.create({ data });
             expect(vehicle.id).toMatch(/^c[a-z0-9]+$/);
             expect(vehicle.available).toBe(true);
@@ -39,25 +136,38 @@ describe('Vehicle no PostgreSQL (migration aplicada)', () => {
             const service = new VehiclesService(tx as unknown as PrismaService);
             expect(await service.findAll()).toContainEqual({
               ...vehicle,
+              category,
               dailyRate: 123.45,
             });
+            expect(vehicle.imageUrl).toBeNull();
+            expect(vehicle.transmission).toBe('MANUAL');
             const updated = await tx.vehicle.update({
               where: { id: vehicle.id },
               data: {
                 licensePlate: ` ${plate.toLowerCase()}- `,
                 available: false,
+                transmission: 'AUTOMATIC',
+                imageUrl: 'https://example.com/car.jpg',
                 year: 2147483647,
               },
             });
             expect(updated.licensePlate).toBe(plate);
+            expect(updated.transmission).toBe('AUTOMATIC');
+            expect(updated.imageUrl).toBe('https://example.com/car.jpg');
             expect(updated.year).toBe(2147483647);
             expect(
               (await service.findAll()).find((v) => v.id === vehicle.id)
                 ?.available,
-            ).toBe(false);
+            ).toBeUndefined();
 
             for (const [index, invalid] of [
               { ...data, licensePlate: plate },
+              {
+                ...data,
+                licensePlate: `${plate}FK`,
+                categoryId: 'missing-category',
+              },
+              { ...data, licensePlate: `${plate}ENUM`, transmission: 'CVT' },
               {
                 ...data,
                 licensePlate: `${plate}ZERO`,
@@ -80,6 +190,21 @@ describe('Vehicle no PostgreSQL (migration aplicada)', () => {
                 tx.vehicle.create({ data: invalid }),
               ).rejects.toThrow();
               await tx.$executeRawUnsafe(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+            }
+            for (const [index, column] of [
+              'categoryId',
+              'transmission',
+            ].entries()) {
+              await tx.$executeRawUnsafe(`SAVEPOINT required_${index}`);
+              await expect(
+                tx.$executeRawUnsafe(
+                  `UPDATE "Vehicle" SET "${column}" = NULL WHERE id = $1`,
+                  vehicle.id,
+                ),
+              ).rejects.toThrow();
+              await tx.$executeRawUnsafe(
+                `ROLLBACK TO SAVEPOINT required_${index}`,
+              );
             }
             throw rollback;
           },
