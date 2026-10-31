@@ -107,8 +107,8 @@ pnpm --filter @hermex/web storybook
 pnpm --filter @hermex/web build-storybook
 ```
 
-Acesse http://localhost:6006 para explorar os 20 componentes da página inicial
-em 54 histórias, organizadas em Átomos e Moléculas. Não requer API nem banco.
+Acesse http://localhost:6006 para explorar os 22 componentes da página inicial
+em 60 histórias, organizadas em Átomos, Moléculas e Organismos. Não requer API nem banco.
 A configuração fica em `apps/web/.storybook`; os estilos usam Tailwind e os
 assets/fontes do design são locais. Detalhes no [README do front-end](apps/web/README.md).
 

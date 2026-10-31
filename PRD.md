@@ -48,8 +48,9 @@ a sugestão inicial de sessões no banco foi substituída por essa restrição.
 ## Componentes da página inicial
 
 - Referência: Figma Hermex, frame `2:3` (1920 | Página Inicial).
-- Implementados 9 átomos e 11 moléculas com Tailwind, isolados da página.
-- Storybook em `apps/web`, com 54 histórias e documentação de cada componente.
+- Implementados 9 átomos, 11 moléculas e os organismos VehicleGrid e Footer,
+  isolados da página.
+- Storybook em `apps/web`, com 60 histórias e documentação de cada componente.
 - Página, demais organismos, integração de busca, categorias reais, horários, links sociais
   oficiais e navegação de detalhes dependem das próximas etapas.
 - Inventário e decisões visuais: `apps/web/src/components/README.md`.
@@ -94,3 +95,53 @@ a sugestão inicial de sessões no banco foi substituída por essa restrição.
   Rio de Janeiro/RJ e São Paulo/SP, com endereços identificados como demonstração.
 - Sem CRUD ou relação com Vehicle. Consumo pelos seletores e busca por data/local
   (HER-10) ficam para as próximas entregas.
+
+## Campos de catálogo do veículo — HER-5
+
+- `Vehicle` agora exige `categoryId` (FK para Category) e `transmission`, sem defaults.
+- Confirmado: veículos existentes exigem mapeamento explícito de categoria e
+  transmissão. O banco local estava vazio na aplicação. A migration transacional
+  bloqueia a tabela e aborta antes de alterar o schema se encontrar veículos;
+  em outro ambiente com registros, definir o mapeamento antes da aplicação.
+- `transmission` é string no PostgreSQL com CHECK para MANUAL/AUTOMATIC e enum
+  `Transmission` no GraphQL. `imageUrl` é opcional, sem validação adicional de URL.
+- A query mantém os campos anteriores e adiciona `imageUrl: String`,
+  `category: Category!` e `transmission: Transmission!`. Categoria vem por include
+  no Prisma, sem consulta por veículo; diária continua convertida para número.
+- Sem CRUD, filtros, paginação ou mudanças de interface. HER-7 implementa o filtro.
+
+## Filtro de veículos — HER-7
+
+- `vehicles(categoryId: ID)` retorna apenas `available: true`, com categoria populada.
+- Sem argumento ou com null, lista todas as categorias; um ID informado aplica
+  igualdade exata no banco. Categoria inexistente ou ID vazio retorna `[]`.
+- Resolver delega ao serviço; um único findMany usa where condicional e include.
+  Sem filtragem em memória, consulta nova ou migration.
+- Mudança intencional: veículos indisponíveis deixam de aparecer também nas
+  consultas antigas sem argumento. Retorno permanece `[Vehicle!]!`.
+- Integração do dropdown pertence à HER-18; paginação e busca permanecem pendentes.
+
+## Grade de veículos — HER-14
+
+- Organismo `VehicleGrid` presentacional, com `CategoryFilter` controlado,
+  `VehicleCard` existente e layout de 1/2/3 colunas (mobile/tablet/desktop).
+- Recebe veículos, categorias e seleção por props; emite categoria (ou `null`)
+  e ID do veículo para detalhes. Não busca nem filtra dados internamente.
+- Lista vazia mantém o filtro e exibe “Nenhum veículo encontrado”.
+- Contrato reutiliza `image`, `dailyRate` e `onDetails` do card existente;
+  `CategoryFilter` corresponde ao Dropdown mencionado na issue.
+- Quatro histórias com dados demonstrativos e verificações de callbacks/estado
+  vazio. Montagem da home permanece na HER-16; integração real na HER-17.
+
+## Rodapé — HER-15
+
+- Organismo `Footer` estático, com logo inverso, créditos em branco, fundo
+  `brand-secondary` (#1D2F40) e redes sociais via props obrigatórias
+  `socialLinks` (WhatsApp, Instagram e TikTok).
+- Confirmado pelo usuário: seguir o Figma para créditos centralizados no desktop
+  e texto “O carro ideal para sua ocasião”, em lugar da posição/texto do card.
+- Layout empilha no mobile; links têm nomes acessíveis, foco visível e abrem em
+  nova aba. Reutiliza `Logo` com `variant="inverse"` e `SocialIcon` com `network`,
+  preservando seus contratos reais e os assets existentes.
+- Duas histórias com links explicitamente demonstrativos. Não há URLs oficiais
+  definidas, busca de dados ou montagem da home; composição permanece na HER-16.
